@@ -12,14 +12,15 @@ library(magrittr)
 library(dplyr)
 library(sf)
 library(leaflet)
-library(raster)
+# library(raster)
 
 # ---- Load data ----
 la_data = read_csv("data/local authority stats.csv")
 lad = read_sf("data/Local_Authority_Districts__December_2019__Boundaries_UK_BGC.shp")
 vi = read_sf("data/vulnerability.geojson")
+hospitals = read_sf("data/hospitals.shp")
 
-lad = lad %>% st_transform(crs = 4326)
+lad = lad %>% st_transform(crs = 4326)  # could do this in preprocessing to speed up load time
 
 
 # ---- UI ----
@@ -89,6 +90,14 @@ server <- function(input, output) {
             ))
     })
     
+    filteredHospital <- reactive({
+        # get code from selected LAD name
+        lad_code = lad %>% filter(lad19nm == input$lad)
+        
+        hospitals %>% 
+            filter(LAD19CD == lad_code$lad19cd)
+    })
+    
     pal <- colorNumeric("viridis", 1:10)
     
     observe({
@@ -106,6 +115,9 @@ server <- function(input, output) {
                                        "Socioeconomic vulnerability: ", Socioeconomic.Vulnerability.decile, "<br/>")) %>% 
             
             addPolygons(fill = FALSE) %>%  # Local Authority boundaries
+            
+            addMarkers(data = fifilteredHospital(),
+                       popup = ~paste("<b>", ))
             
             setView(lng = curr_LA$long, lat = curr_LA$lat, zoom = 10)
         

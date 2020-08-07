@@ -17,9 +17,28 @@ vi = read_sf("https://github.com/britishredcrosssociety/covid-19-vulnerability/r
 # lookup local authorities that each MSOA is in
 msoa_lad = read_csv("https://github.com/britishredcrosssociety/covid-19-vulnerability/raw/master/data/lookup%20msoa%20to%20lad.csv")
 
+vi = vi %>% 
+  left_join(msoa_lad, by = c("Code" = "MSOA11CD"))
+
+# calculate deciles *within* each local authority
+msoa_lad %>% 
+  count(LAD19CD) %>% 
+  arrange(n)
+
+library(Hmisc)
+
+vi2 = vi %>% 
+  group_by(LAD19CD) %>% 
+  mutate(Decile = as.integer(cut2(Socioeconomic.Vulnerability.rank, g = 10)),
+         Group = cut2(Socioeconomic.Vulnerability.rank, g = 10),
+         Decile2 = as.integer(cut2(Socioeconomic.Vulnerability.score, g = 10))) %>% 
+  ungroup() %>% 
+  select(Code, LAD19CD, Socioeconomic.Vulnerability.rank, Decile, Group, Decile2) %>% 
+  arrange(LAD19CD, Decile)
+
+
 # save a local copy
 vi %>% 
-  left_join(msoa_lad, by = c("Code" = "MSOA11CD")) %>% 
   write_sf("data/vulnerability.geojson")
 
 
